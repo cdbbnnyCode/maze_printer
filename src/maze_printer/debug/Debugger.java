@@ -1,11 +1,10 @@
 package maze_printer.debug;
 
-import static maze_printer.debug.CUtils.*;
+import static maze_printer.debug.CUtils.sprintf;
+import static maze_printer.debug.CUtils.tostring;
 
 import java.io.File;
-import java.io.FileDescriptor;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.text.SimpleDateFormat;
@@ -212,7 +211,7 @@ public class Debugger {
 				}
 			} else {
 				out = System.out;
-				err = new PrintStream(new FileOutputStream(FileDescriptor.err)); //Re-create System.err, which we have just assigned null to
+				err = System.err;
 			}
 		} else {
 			out = new NullPrintStream();

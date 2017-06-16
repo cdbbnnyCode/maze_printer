@@ -136,6 +136,7 @@ public class MazePrinter extends JFrame {
 		});
 		mnFile.add(mntmExit);
 		
+		contentPane = (JPanel) getContentPane();
 		
 		JPanel header = new JPanel();
 		contentPane.add(header, BorderLayout.NORTH);
