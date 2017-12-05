@@ -1,2 +1,0 @@
-Main-Class: maze_printer.MazePrinter
-Class-Path: image4j-0.7.2.jar

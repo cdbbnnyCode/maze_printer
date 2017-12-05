@@ -1,3 +1,19 @@
+/*******************************************************************************
+ *        Copyright 2017 cdbbnny
+ *
+ *        Licensed under the Apache License, Version 2.0 (the "License");
+ *        you may not use this file except in compliance with the License.
+ *        You may obtain a copy of the License at
+ *
+ *          http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *        Unless required by applicable law or agreed to in writing, software
+ *        distributed under the License is distributed on an "AS IS" BASIS,
+ *        WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *        See the License for the specific language governing permissions and
+ *        limitations under the License.
+ *******************************************************************************/
+
 package maze_printer;
 
 import java.awt.BorderLayout;
@@ -11,6 +27,7 @@ import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.imageio.ImageIO;
@@ -33,7 +50,9 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.filechooser.FileFilter;
 
-import net.sf.image4j.codec.ico.ICODecoder;
+import maze_printer.export.Print;
+import maze_printer.export.SchematicExport;
+import maze_printer.util.AboutDialog;
 
 @SuppressWarnings("serial")
 public class MazePrinter extends JFrame {
@@ -43,6 +62,7 @@ public class MazePrinter extends JFrame {
 	private PreviewPanel preview;
 	private BufferedImage img;
 	private JCheckBox slow;
+	private JSpinner spinner;
 
 	/**
 	 * Launch the application.
@@ -65,7 +85,13 @@ public class MazePrinter extends JFrame {
 	 */
 	public MazePrinter() {
 		try {
-			List<BufferedImage> imgs = ICODecoder.read(MazePrinter.class.getResource("/img/maze_printer.ico").openStream());
+			String[] sizes = {
+				"16", "32", "48", "64", "128", "256"
+			};
+			List<BufferedImage> imgs = new ArrayList<>();
+			for (String sz : sizes) {
+				imgs.add(ImageIO.read(MazePrinter.class.getResourceAsStream("/img/icon_"+sz+".png")));
+			}
 			setIconImages(imgs);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -84,6 +110,7 @@ public class MazePrinter extends JFrame {
 		JMenuItem mntmSaveAsImage = new JMenuItem("Save as image...");
 		mntmSaveAsImage.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
+				refresh();
 				JFileChooser jfc = new JFileChooser(System.getProperty("user.home"));
 				jfc.showSaveDialog(MazePrinter.this);
 				File res = jfc.getSelectedFile();
@@ -113,11 +140,13 @@ public class MazePrinter extends JFrame {
 				}
 			}
 			private void writeAs(String format, File f, BufferedImage img) {
+				System.out.println("Writing image...");
 				try {
 					ImageIO.write(img, format, f);
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
+				System.out.println("Done writing image");
 			}
 			private boolean noExt(File f) {
 				return (f.getName().indexOf('.') < 0);
@@ -128,6 +157,15 @@ public class MazePrinter extends JFrame {
 		});
 		mnFile.add(mntmSaveAsImage);
 		
+		JMenuItem mntmSaveAsSchematic = new JMenuItem("Save as MCEdit schematic...");
+		mntmSaveAsSchematic.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				refresh();
+				SchematicExport.export(preview);
+			}
+		});
+		mnFile.add(mntmSaveAsSchematic);
+		
 		JMenuItem mntmExit = new JMenuItem("Exit");
 		mntmExit.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -136,14 +174,28 @@ public class MazePrinter extends JFrame {
 		});
 		mnFile.add(mntmExit);
 		
+		JMenu mnHelp = new JMenu("Help");
+		menuBar.add(mnHelp);
+		
+		JMenuItem mntmAbout = new JMenuItem("About");
+		mntmAbout.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				AboutDialog.run(MazePrinter.this);
+			}
+			
+		});
+		mnHelp.add(mntmAbout);
+		
 		contentPane = (JPanel) getContentPane();
 		
 		JPanel header = new JPanel();
 		contentPane.add(header, BorderLayout.NORTH);
 		GridBagLayout gbl_header = new GridBagLayout();
-		gbl_header.columnWidths = new int[]{56, 0, 0, 0, 0, 0, 0, 0};
+		gbl_header.columnWidths = new int[]{56, 0, 0, 0, 0, 0, 0, 0, 0};
 		gbl_header.rowHeights = new int[]{14, 0};
-		gbl_header.columnWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
+		gbl_header.columnWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
 		gbl_header.rowWeights = new double[]{0.0, Double.MIN_VALUE};
 		header.setLayout(gbl_header);
 		
@@ -165,13 +217,23 @@ public class MazePrinter extends JFrame {
 		gbc_rect_opt.gridy = 0;
 		header.add(rect_opt, gbc_rect_opt);
 		
+		JRadioButton circular_opt = new JRadioButton("Circle");
+		circular_opt.setEnabled(false);
+		circular_opt.setActionCommand("use circle");
+		mazeType.add(circular_opt);
+		GridBagConstraints gbc_circular_opt = new GridBagConstraints();
+		gbc_circular_opt.insets = new Insets(0, 0, 0, 5);
+		gbc_circular_opt.gridx = 2;
+		gbc_circular_opt.gridy = 0;
+		header.add(circular_opt, gbc_circular_opt);
+		
 		JRadioButton image_opt = new JRadioButton("Image");
 		image_opt.setEnabled(false);
 		image_opt.setActionCommand("use img");
 		mazeType.add(image_opt);
 		GridBagConstraints gbc_image_opt = new GridBagConstraints();
 		gbc_image_opt.insets = new Insets(0, 0, 0, 5);
-		gbc_image_opt.gridx = 2;
+		gbc_image_opt.gridx = 3;
 		gbc_image_opt.gridy = 0;
 		header.add(image_opt, gbc_image_opt);
 		
@@ -208,18 +270,18 @@ public class MazePrinter extends JFrame {
 		});
 		GridBagConstraints gbc_btnSetImage = new GridBagConstraints();
 		gbc_btnSetImage.insets = new Insets(0, 0, 0, 5);
-		gbc_btnSetImage.gridx = 3;
+		gbc_btnSetImage.gridx = 4;
 		gbc_btnSetImage.gridy = 0;
 		header.add(btnSetImage, gbc_btnSetImage);
 		
 		JLabel lblPathSizepx = new JLabel("Path Size (px)");
 		GridBagConstraints gbc_lblPathSizepx = new GridBagConstraints();
 		gbc_lblPathSizepx.insets = new Insets(0, 0, 0, 5);
-		gbc_lblPathSizepx.gridx = 4;
+		gbc_lblPathSizepx.gridx = 5;
 		gbc_lblPathSizepx.gridy = 0;
 		header.add(lblPathSizepx, gbc_lblPathSizepx);
 		
-		JSpinner spinner = new JSpinner();
+		spinner = new JSpinner();
 		spinner.addChangeListener(new ChangeListener() {
 			private int lastValue = 10;
 			public void stateChanged(ChangeEvent e) {
@@ -242,13 +304,13 @@ public class MazePrinter extends JFrame {
 		spinner.setModel(new SpinnerNumberModel(18, 4, 100, 1));
 		GridBagConstraints gbc_spinner = new GridBagConstraints();
 		gbc_spinner.insets = new Insets(0, 0, 0, 5);
-		gbc_spinner.gridx = 5;
+		gbc_spinner.gridx = 6;
 		gbc_spinner.gridy = 0;
 		header.add(spinner, gbc_spinner);
 		
 		slow = new JCheckBox("Slow Generation");
 		GridBagConstraints gbc_slow = new GridBagConstraints();
-		gbc_slow.gridx = 6;
+		gbc_slow.gridx = 7;
 		gbc_slow.gridy = 0;
 		header.add(slow, gbc_slow);
 		
@@ -281,16 +343,7 @@ public class MazePrinter extends JFrame {
 		JButton btnRefreshPreview = new JButton("Refresh Preview");
 		btnRefreshPreview.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				boolean useImg = mazeType.getSelection().getActionCommand().equals("use img");
-				int path_size = (int) spinner.getValue();
-				if (useImg && img == null) {
-					JOptionPane.showMessageDialog(MazePrinter.this, "Please select an image");
-					return;
-				}
-				preview.path_size = path_size;
-				preview.setSlow(slow.isSelected());
-				if (useImg) preview.setImage(img);
-				else preview.rectMode();
+				refresh();
 			}
 		});
 		GridBagConstraints gbc_btnRefreshPreview = new GridBagConstraints();
@@ -313,4 +366,18 @@ public class MazePrinter extends JFrame {
 		footer.add(btnPrint, gbc_btnPrint);
 	}
 
+	private void refresh() {
+		boolean useImg = mazeType.getSelection().getActionCommand().equals("use img");
+		boolean circular = mazeType.getSelection().getActionCommand().equals("use circle");
+		int path_size = (int) spinner.getValue();
+		if (useImg && img == null) {
+			JOptionPane.showMessageDialog(MazePrinter.this, "Please select an image");
+			return;
+		}
+		preview.path_size = path_size;
+		preview.setSlow(slow.isSelected());
+		if (useImg) preview.setImage(img);
+		else if (circular) preview.circularMode();
+		else preview.rectMode();
+	}
 }
