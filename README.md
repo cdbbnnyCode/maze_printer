@@ -2,7 +2,7 @@
 Generates and prints mazes.  
 
 ### Changelog  
-#### Version 1.1 - Improved speed and schematic export
+#### Version 0.2 - Improved speed and schematic export
 
 * Removed "space-heater" code  
   * Previous version would take about 24 hours to generate a 10,000 x 10,000 pixel maze with the path size set to the
@@ -12,7 +12,7 @@ Generates and prints mazes.
 * Added schematic export functionality  
   * Now you can generate a .schematic maze file for MCEdit to put into your Minecraft worlds!  
 
-#### Version 1.0 - Initial release
+#### Version 0.1 - Initial release
 
 First working version.
 
