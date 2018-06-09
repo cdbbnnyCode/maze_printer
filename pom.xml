@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>maze_printer</groupId>
   <artifactId>maze_printer</artifactId>
-  <version>0.2</version>
+  <version>0.2.1</version>
   <name>Maze Printer</name>
   <description>Tool to generate, export, and print mazes</description>
   <properties>

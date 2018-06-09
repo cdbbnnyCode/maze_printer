@@ -16,5 +16,5 @@
 package maze_printer;
 
 public class Version {
-	public static final String VER = "v0.2";
+	public static final String VER = "v0.2.1";
 }

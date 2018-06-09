@@ -336,15 +336,29 @@ public class MazePrinter extends JFrame {
 		GridBagLayout gbl_footer = new GridBagLayout();
 		gbl_footer.columnWidths = new int[]{695, 67, 0};
 		gbl_footer.rowHeights = new int[]{23, 0};
-		gbl_footer.columnWeights = new double[]{0.0, 0.0, Double.MIN_VALUE};
+		gbl_footer.columnWeights = new double[]{1.0, 0.0, Double.MIN_VALUE};
 		gbl_footer.rowWeights = new double[]{0.0, Double.MIN_VALUE};
 		footer.setLayout(gbl_footer);
 		
 		JButton btnRefreshPreview = new JButton("Refresh Preview");
 		btnRefreshPreview.addActionListener(new ActionListener() {
+			private boolean doCancel;
 			public void actionPerformed(ActionEvent e) {
-				refresh();
+				if (doCancel) {
+					preview.cancel();
+					spinner.setEnabled(true);
+					doCancel = false;
+					btnRefreshPreview.setText("Refresh Preview");
+				} else {
+					refresh();
+					doCancel = true;
+					btnRefreshPreview.setText("Cancel");
+				}
 			}
+		});
+		preview.addFinishListener(() -> {
+			btnRefreshPreview.doClick();
+			spinner.setEnabled(true);
 		});
 		GridBagConstraints gbc_btnRefreshPreview = new GridBagConstraints();
 		gbc_btnRefreshPreview.anchor = GridBagConstraints.EAST;
@@ -370,6 +384,7 @@ public class MazePrinter extends JFrame {
 		boolean useImg = mazeType.getSelection().getActionCommand().equals("use img");
 		boolean circular = mazeType.getSelection().getActionCommand().equals("use circle");
 		int path_size = (int) spinner.getValue();
+		spinner.setEnabled(false);
 		if (useImg && img == null) {
 			JOptionPane.showMessageDialog(MazePrinter.this, "Please select an image");
 			return;

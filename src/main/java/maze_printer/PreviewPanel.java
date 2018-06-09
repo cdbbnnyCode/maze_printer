@@ -21,6 +21,7 @@ import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Point;
+import java.awt.Font;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -62,6 +63,12 @@ public class PreviewPanel extends JPanel {
 	private Random rand;
 	//Whether to generate slowly
 	private boolean slow;
+
+	private Thread updater;
+	
+	private volatile List<Runnable> onFinish = new ArrayList<>();
+	
+	private static Font font = new Font("SansSerif", Font.PLAIN, 18);
 	/**
 	 * Create the panel.
 	 */
@@ -71,7 +78,7 @@ public class PreviewPanel extends JPanel {
 		setBackground(bg);
 		rand = new Random();
 		//Create updater thread
-		new Thread(new Runnable() {
+		updater = new Thread(new Runnable() {
 
 			@Override
 			public void run() {
@@ -86,7 +93,8 @@ public class PreviewPanel extends JPanel {
 				}
 			}
 			
-		}, "Update Thread").start();
+		}, "Update Thread");
+		updater.start();
 		//Create paint thread
 		new Thread(new Runnable() {
 
@@ -139,6 +147,9 @@ public class PreviewPanel extends JPanel {
 		g2d.drawImage(buffer, 0, 0, null);
 		//Show window size if resized
 		if (getWidth() != buffer.getWidth() || getHeight() != buffer.getHeight()) {
+			g2d.setFont(font);
+			g2d.setColor(Color.BLACK);
+			g2d.drawString(getWidth() + "x" + getHeight() + " (refresh to hide)", 21, 21);
 			g2d.setColor(Color.GREEN);
 			g2d.drawString(getWidth() + "x" + getHeight() + " (refresh to hide)", 20, 20);
 		}
@@ -149,8 +160,6 @@ public class PreviewPanel extends JPanel {
 	private void update() {
 		update(buffer);
 	}
-	
-	
 	
 	/*
 	 * Redraw the maze
@@ -187,7 +196,6 @@ public class PreviewPanel extends JPanel {
 		int x, y, x2, y2;
 		//Coords array is for points to go back to if the current trail ends
 		Stack<Point> coords = new Stack<Point>();
-		int cnt = 0;
 		//Push starting point (top left corner)
 		coords.push(getStart(fill, autofill));
 		while (!full(fill)) {
@@ -226,6 +234,14 @@ public class PreviewPanel extends JPanel {
 						succ = true;
 						x2++;
 					}
+					if (Thread.interrupted()) {
+						System.out.println("Stopping");
+						needsUpdate = false;
+						g.setColor(bg);
+						g.fillRect(0, 0, w, h);
+						repaint();
+						return;
+					}
 				}
 				//Draw line
 				draw_path(g, wall_size, x, y, x2, y2);
@@ -241,7 +257,9 @@ public class PreviewPanel extends JPanel {
 				if (slow)
 					try {
 						Thread.sleep(70);
-					} catch (Exception e) {}
+					} catch (InterruptedException e) {
+						Thread.currentThread().interrupt();
+					}
 			}
 			fill(fill, x, y);
 			//Debugging overlays
@@ -275,6 +293,9 @@ public class PreviewPanel extends JPanel {
 		
 		System.out.println("\nDone");
 		needsUpdate = false;
+		for (int i = 0; i < onFinish.size(); i++) {
+			onFinish.get(i).run();
+		}
 		repaint(); //Final repaint so that holes aren't left in the preview
 	}
 	
@@ -517,6 +538,14 @@ public class PreviewPanel extends JPanel {
 	 */
 	public void setSlow(boolean b) {
 		this.slow = b;
+	}
+
+	public void cancel() {
+		updater.interrupt();
+	}
+	
+	public void addFinishListener(Runnable r) {
+		onFinish.add(r);
 	}
 	/**
 	 * Render the maze on to a custom buffer.
